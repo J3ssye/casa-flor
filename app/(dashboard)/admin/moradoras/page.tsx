@@ -1,0 +1,262 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Badge from "@/components/ui/Badge";
+import Modal from "@/components/ui/Modal";
+import Input from "@/components/ui/Input";
+import DateInput from "@/components/ui/DateInput";
+
+interface Moradora {
+  id: string;
+  nome: string;
+  email: string;
+  role: string;
+  ativo: boolean;
+  entradaEm: string | null;
+  saidaPrevista: string | null;
+  criadoEm: string;
+}
+
+const formVazio = {
+  nome: "", email: "", senha: "", role: "MORADORA",
+  entradaEm: "", saidaPrevista: "", indefinida: true,
+};
+
+function formatarData(iso: string | null) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString("pt-BR");
+}
+
+function labelPermanencia(m: Moradora) {
+  if (!m.entradaEm) return null;
+  const entrada = formatarData(m.entradaEm);
+  if (!m.saidaPrevista) return `Desde ${entrada} · permanência indefinida`;
+  return `${entrada} → ${formatarData(m.saidaPrevista)}`;
+}
+
+export default function MoradorasPage() {
+  const [moradoras, setMoradoras] = useState<Moradora[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [modalAberto, setModalAberto] = useState(false);
+  const [editando, setEditando] = useState<Moradora | null>(null);
+  const [form, setForm] = useState(formVazio);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState("");
+
+  async function carregar() {
+    setCarregando(true);
+    const res = await fetch("/api/moradoras");
+    setMoradoras(await res.json());
+    setCarregando(false);
+  }
+
+  useEffect(() => { carregar(); }, []);
+
+  function abrirCriacao() {
+    setEditando(null);
+    setForm(formVazio);
+    setErro("");
+    setModalAberto(true);
+  }
+
+  function abrirEdicao(m: Moradora) {
+    setEditando(m);
+    setForm({
+      nome: m.nome,
+      email: m.email,
+      senha: "",
+      role: m.role,
+      entradaEm: m.entradaEm ? m.entradaEm.split("T")[0] : "",
+      saidaPrevista: m.saidaPrevista ? m.saidaPrevista.split("T")[0] : "",
+      indefinida: !m.saidaPrevista,
+    });
+    setErro("");
+    setModalAberto(true);
+  }
+
+  async function salvar() {
+    setSalvando(true);
+    setErro("");
+
+    const url = editando ? `/api/moradoras/${editando.id}` : "/api/moradoras";
+    const method = editando ? "PUT" : "POST";
+
+    const body: Record<string, unknown> = {
+      nome: form.nome,
+      email: form.email,
+      role: form.role,
+      entradaEm: form.entradaEm || null,
+      saidaPrevista: form.indefinida ? null : (form.saidaPrevista || null),
+    };
+    if (form.senha) body.senha = form.senha;
+    if (!editando && !form.senha) {
+      setErro("Senha obrigatória para nova moradora");
+      setSalvando(false);
+      return;
+    }
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    setSalvando(false);
+
+    if (!res.ok) {
+      const d = await res.json();
+      setErro(d.error ?? "Erro ao salvar");
+      return;
+    }
+
+    setModalAberto(false);
+    carregar();
+  }
+
+  async function toggleAtivo(m: Moradora) {
+    await fetch(`/api/moradoras/${m.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ativo: !m.ativo }),
+    });
+    carregar();
+  }
+
+  const ativas = moradoras.filter((m) => m.ativo);
+  const inativas = moradoras.filter((m) => !m.ativo);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Moradoras</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{ativas.length} ativas</p>
+        </div>
+        <Button onClick={abrirCriacao} size="lg">+ Nova moradora</Button>
+      </div>
+
+      {carregando ? (
+        <p className="text-gray-500">Carregando…</p>
+      ) : (
+        <div className="space-y-3">
+          {ativas.map((m) => (
+            <Card key={m.id} className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-medium text-gray-900">{m.nome}</p>
+                <p className="text-sm text-gray-500">{m.email}</p>
+                {labelPermanencia(m) && (
+                  <p className="text-xs text-gray-400 mt-0.5">{labelPermanencia(m)}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Badge variant={m.role === "ADMIN" ? "blue" : "gray"}>
+                  {m.role === "ADMIN" ? "Admin" : "Moradora"}
+                </Badge>
+                <Button variant="secondary" size="sm" onClick={() => abrirEdicao(m)}>Editar</Button>
+                <Button variant="ghost" size="sm" onClick={() => toggleAtivo(m)}>Desativar</Button>
+              </div>
+            </Card>
+          ))}
+
+          {inativas.length > 0 && (
+            <>
+              <p className="text-sm font-medium text-gray-400 pt-2">Inativas</p>
+              {inativas.map((m) => (
+                <Card key={m.id} className="flex items-center justify-between gap-3 opacity-60">
+                  <div>
+                    <p className="font-medium text-gray-700">{m.nome}</p>
+                    <p className="text-sm text-gray-400">{m.email}</p>
+                    {labelPermanencia(m) && (
+                      <p className="text-xs text-gray-400 mt-0.5">{labelPermanencia(m)}</p>
+                    )}
+                  </div>
+                  <Button variant="secondary" size="sm" onClick={() => toggleAtivo(m)}>Reativar</Button>
+                </Card>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
+      <Modal
+        aberto={modalAberto}
+        onFechar={() => setModalAberto(false)}
+        titulo={editando ? "Editar moradora" : "Nova moradora"}
+      >
+        <div className="space-y-4">
+          <Input
+            label="Nome completo"
+            value={form.nome}
+            onChange={(e) => setForm({ ...form, nome: e.target.value })}
+            placeholder="Maria Silva"
+          />
+          <Input
+            label="E-mail"
+            type="email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            placeholder="maria@email.com"
+          />
+          <Input
+            label={editando ? "Nova senha (deixe em branco para manter)" : "Senha"}
+            type="password"
+            value={form.senha}
+            onChange={(e) => setForm({ ...form, senha: e.target.value })}
+            placeholder="••••••••"
+          />
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">Papel</label>
+            <select
+              value={form.role}
+              onChange={(e) => setForm({ ...form, role: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-400 text-base"
+            >
+              <option value="MORADORA">Moradora</option>
+              <option value="ADMIN">Administradora</option>
+            </select>
+          </div>
+
+          {/* Permanência */}
+          <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+            <p className="text-sm font-medium text-gray-700">Permanência</p>
+            <DateInput
+              label="Data de entrada"
+              value={form.entradaEm}
+              onChange={(e) => setForm({ ...form, entradaEm: e.target.value })}
+            />
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.indefinida}
+                onChange={(e) => setForm({ ...form, indefinida: e.target.checked, saidaPrevista: "" })}
+                className="w-4 h-4 rounded accent-primary-500"
+              />
+              <span className="text-sm text-gray-700">Permanência indefinida</span>
+            </label>
+            {!form.indefinida && (
+              <DateInput
+                label="Saída prevista"
+                value={form.saidaPrevista}
+                onChange={(e) => setForm({ ...form, saidaPrevista: e.target.value })}
+                min={form.entradaEm || undefined}
+              />
+            )}
+          </div>
+
+          {erro && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-2">{erro}</p>}
+
+          <div className="flex gap-3 pt-2">
+            <Button variant="secondary" className="flex-1" onClick={() => setModalAberto(false)}>
+              Cancelar
+            </Button>
+            <Button className="flex-1" onClick={salvar} disabled={salvando}>
+              {salvando ? "Salvando…" : "Salvar"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}

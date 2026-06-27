@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: republica_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: republica
+      POSTGRES_PASSWORD: republica123
+      POSTGRES_DB: republica_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

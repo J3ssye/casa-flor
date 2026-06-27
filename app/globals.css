@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #F7EDE8;
+    color: #2d1a18;
+  }
+}
+
+@layer utilities {
+  .font-script {
+    font-family: "Dancing Script", cursive;
+  }
+}

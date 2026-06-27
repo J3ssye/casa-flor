@@ -1,0 +1,353 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  MORADORA
+}
+
+enum Periodicidade {
+  DIARIA
+  SEMANAL
+  QUINZENAL
+  MENSAL
+}
+
+enum StatusEscala {
+  PENDENTE
+  CONCLUIDA
+  ATRASADA
+}
+
+enum StatusReclamacao {
+  ABERTA
+  EM_ANALISE
+  RESOLVIDA
+}
+
+enum CategoriaReclamacao {
+  LIMPEZA
+  BARULHO
+  CONVIVENCIA
+  FINANCEIRO
+  INFRAESTRUTURA
+  OUTRO
+}
+
+enum CategoriaDespesa {
+  ALUGUEL
+  MERCADO
+  LIMPEZA
+  GAS
+  MANUTENCAO
+  OUTRO
+}
+
+// ─────────────────────────────────────────────
+// Usuários
+// ─────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  nome         String
+  email        String   @unique
+  senha        String
+  role         Role     @default(MORADORA)
+  ativo        Boolean  @default(true)
+  entradaEm    DateTime?
+  saidaPrevista DateTime?
+  criadoEm    DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  escalaItems      EscalaItem[]
+  conclusoesTarefa ConclusaoTarefa[]
+  marcacoesTarefa  MarcacaoTarefa[]
+  avisosAutor      Aviso[]           @relation("AvisoAutor")
+  leiturasAviso    LeituraAviso[]
+  reclamacoes      Reclamacao[]
+  despesasPagas    Despesa[]
+  rateioConfigs    RateioConfig[]
+
+  @@index([email])
+  @@index([ativo])
+  @@index([role])
+}
+
+// ─────────────────────────────────────────────
+// Áreas da casa
+// ─────────────────────────────────────────────
+
+model Area {
+  id                   String        @id @default(cuid())
+  nome                 String
+  descricao            String?
+  periodicidadeLimpeza Periodicidade @default(SEMANAL)
+  ativo                Boolean       @default(true)
+  criadoEm            DateTime      @default(now())
+  atualizadoEm        DateTime      @updatedAt
+
+  tarefas Tarefa[]
+
+  @@index([ativo])
+}
+
+// ─────────────────────────────────────────────
+// Tarefas
+// ─────────────────────────────────────────────
+
+model Tarefa {
+  id            String        @id @default(cuid())
+  titulo        String
+  descricao     String?
+  periodicidade Periodicidade @default(SEMANAL)
+  ativo         Boolean       @default(true)
+  criadoEm    DateTime      @default(now())
+  atualizadoEm DateTime     @updatedAt
+
+  // Quando definido, sobrepõe periodicidade: tarefa ocorre N vezes por semana
+  vezesNaSemana Int?
+
+  area   Area   @relation(fields: [areaId], references: [id])
+  areaId String
+
+  escalaItems EscalaItem[]
+
+  @@index([areaId])
+  @@index([ativo])
+}
+
+// ─────────────────────────────────────────────
+// Escala (rodízio)
+// ─────────────────────────────────────────────
+
+model EscalaItem {
+  id           String       @id @default(cuid())
+  dataInicio   DateTime
+  dataFim      DateTime
+  status       StatusEscala @default(PENDENTE)
+  criadoEm   DateTime     @default(now())
+  atualizadoEm DateTime   @updatedAt
+
+  percentualConclusao  Int     @default(0)   // 0–100 (derivado das marcações)
+  observacaoMoradora   String?               // observação ao atualizar progresso
+  diasSemana           Int[]                 // 0=Dom 1=Seg … 6=Sáb; vazio = sem dias fixos
+  modoDias             String  @default("TODOS") // "TODOS" (E) | "UM_DENTRE" (OU)
+
+  tarefa   Tarefa @relation(fields: [tarefaId], references: [id])
+  tarefaId String
+
+  responsavel User   @relation(fields: [userId], references: [id])
+  userId      String
+
+  conclusao  ConclusaoTarefa?
+  marcacoes  MarcacaoTarefa[]
+
+  @@index([tarefaId])
+  @@index([userId])
+  @@index([status])
+  @@index([dataInicio, dataFim])
+}
+
+// ─────────────────────────────────────────────
+// Marcação de conclusão por ocorrência (dia/semana)
+// ─────────────────────────────────────────────
+
+model MarcacaoTarefa {
+  id           String   @id @default(cuid())
+  data         DateTime               // dia marcado como feito (meio-dia UTC)
+  criadoEm     DateTime @default(now())
+
+  escalaItem   EscalaItem @relation(fields: [escalaItemId], references: [id], onDelete: Cascade)
+  escalaItemId String
+
+  quemMarcou User   @relation(fields: [userId], references: [id])
+  userId     String
+
+  @@unique([escalaItemId, data])
+  @@index([escalaItemId])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// Conclusão de tarefa
+// ─────────────────────────────────────────────
+
+model ConclusaoTarefa {
+  id            String   @id @default(cuid())
+  dataConclusao DateTime @default(now())
+  observacao    String?
+
+  escalaItem   EscalaItem @relation(fields: [escalaItemId], references: [id])
+  escalaItemId String     @unique
+
+  quemConcluiu User   @relation(fields: [userId], references: [id])
+  userId       String
+
+  @@index([userId])
+  @@index([dataConclusao])
+}
+
+// ─────────────────────────────────────────────
+// Avisos
+// ─────────────────────────────────────────────
+
+model Aviso {
+  id           String    @id @default(cuid())
+  titulo       String
+  conteudo     String
+  dataValidade DateTime?
+  criadoEm   DateTime  @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  autor   User   @relation("AvisoAutor", fields: [autorId], references: [id])
+  autorId String
+
+  leituras LeituraAviso[]
+
+  @@index([autorId])
+  @@index([criadoEm])
+  @@index([dataValidade])
+}
+
+model LeituraAviso {
+  id     String   @id @default(cuid())
+  lidoEm DateTime @default(now())
+
+  aviso   Aviso  @relation(fields: [avisoId], references: [id], onDelete: Cascade)
+  avisoId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  @@unique([avisoId, userId])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// Reclamações
+// ─────────────────────────────────────────────
+// autorId é SEMPRE salvo para auditoria interna.
+// A API de admin nunca retorna este campo quando anonima=true.
+
+model Reclamacao {
+  id            String              @id @default(cuid())
+  conteudo      String
+  categoria     CategoriaReclamacao @default(OUTRO)
+  anonima       Boolean             @default(false)
+  status        StatusReclamacao    @default(ABERTA)
+  respostaAdmin String?
+  criadoEm    DateTime            @default(now())
+  atualizadoEm DateTime          @updatedAt
+
+  autor   User   @relation(fields: [autorId], references: [id])
+  autorId String
+
+  @@index([status])
+  @@index([anonima])
+  @@index([criadoEm])
+}
+
+// ─────────────────────────────────────────────
+// Financeiro
+// ─────────────────────────────────────────────
+
+// Catálogo de itens da casa (detergente, vassoura, saco de lixo…)
+model ItemCasa {
+  id            String    @id @default(cuid())
+  nome          String
+  unidadePadrao String?   // ex: "frasco", "pacote", "unidade"
+  ativo         Boolean   @default(true)
+  criadoEm    DateTime  @default(now())
+
+  despesas Despesa[]
+
+  @@index([ativo])
+}
+
+model Despesa {
+  id            String           @id @default(cuid())
+  descricao     String
+  valor         Decimal          @db.Decimal(10, 2)
+  categoria     CategoriaDespesa @default(OUTRO)
+  dataDespesa   DateTime
+  mesReferencia String?          // formato "YYYY-MM"
+  // Campos para compras de itens da casa
+  quantidade    Decimal?         @db.Decimal(8, 2)
+  unidade       String?          // ex: "frascos", "pacotes"
+  criadoEm    DateTime         @default(now())
+  atualizadoEm DateTime        @updatedAt
+
+  pagador   User      @relation(fields: [pagadorId], references: [id])
+  pagadorId String
+
+  itemCasa   ItemCasa? @relation(fields: [itemCasaId], references: [id])
+  itemCasaId String?
+
+  @@index([pagadorId])
+  @@index([dataDespesa])
+  @@index([mesReferencia])
+  @@index([categoria])
+  @@index([itemCasaId])
+}
+
+model RateioConfig {
+  id          String    @id @default(cuid())
+  peso        Decimal   @db.Decimal(5, 2)
+  vigenciaDe  DateTime
+  vigenciaAte DateTime?
+  criadoEm  DateTime  @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  @@index([userId])
+  @@index([vigenciaDe, vigenciaAte])
+}
+
+// ─────────────────────────────────────────────
+// Tabelas para funcionalidades futuras (sem rotas/UI no MVP)
+// ─────────────────────────────────────────────
+
+model ItemCompra {
+  id         String   @id @default(cuid())
+  nome       String
+  quantidade String?
+  comprado   Boolean  @default(false)
+  criadoPor  String
+  criadoEm  DateTime @default(now())
+
+  @@index([comprado])
+}
+
+model AgendaLavanderia {
+  id        String   @id @default(cuid())
+  userId    String
+  dataHora  DateTime
+  duracao   Int
+  criadoEm DateTime @default(now())
+
+  @@index([dataHora])
+  @@index([userId])
+}
+
+model SolicitacaoTroca {
+  id            String   @id @default(cuid())
+  solicitanteId String
+  escalaItemId  String
+  candidataId   String?
+  status        String   @default("PENDENTE")
+  criadoEm    DateTime @default(now())
+
+  @@index([solicitanteId])
+  @@index([status])
+}

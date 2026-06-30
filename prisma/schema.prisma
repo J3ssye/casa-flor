@@ -92,6 +92,7 @@ model Area {
   nome                 String
   descricao            String?
   periodicidadeLimpeza Periodicidade @default(SEMANAL)
+  vezesNaSemanaLimpeza Int?          // quando definido, sobrepõe a periodicidade: N vezes por semana
   ativo                Boolean       @default(true)
   criadoEm            DateTime      @default(now())
   atualizadoEm        DateTime      @updatedAt

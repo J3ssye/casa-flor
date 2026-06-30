@@ -17,11 +17,16 @@ export async function POST(req: NextRequest) {
   const { error } = await requireAdmin();
   if (error) return error;
 
-  const { nome, descricao, periodicidadeLimpeza } = await req.json();
+  const { nome, descricao, periodicidadeLimpeza, vezesNaSemanaLimpeza } = await req.json();
   if (!nome) return NextResponse.json({ error: "nome é obrigatório" }, { status: 400 });
 
   const area = await prisma.area.create({
-    data: { nome, descricao, periodicidadeLimpeza: periodicidadeLimpeza ?? "SEMANAL" },
+    data: {
+      nome,
+      descricao,
+      periodicidadeLimpeza: periodicidadeLimpeza ?? "SEMANAL",
+      vezesNaSemanaLimpeza: vezesNaSemanaLimpeza ? Number(vezesNaSemanaLimpeza) : null,
+    },
   });
   return NextResponse.json(area, { status: 201 });
 }

@@ -11,6 +11,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (body.nome !== undefined) data.nome = body.nome;
   if (body.descricao !== undefined) data.descricao = body.descricao;
   if (body.periodicidadeLimpeza !== undefined) data.periodicidadeLimpeza = body.periodicidadeLimpeza;
+  if (body.vezesNaSemanaLimpeza !== undefined) data.vezesNaSemanaLimpeza = body.vezesNaSemanaLimpeza ? Number(body.vezesNaSemanaLimpeza) : null;
   if (body.ativo !== undefined) data.ativo = body.ativo;
 
   try {

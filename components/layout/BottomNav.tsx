@@ -16,6 +16,7 @@ const adminItems: NavItem[] = [
   { href: "/admin/tarefas",   label: "Tarefas",   icon: "🗂️" },
   { href: "/admin/escala",    label: "Escala",    icon: "📋" },
   { href: "/admin/calendario", label: "Calendário", icon: "📅" },
+  { href: "/admin/aniversariantes", label: "Aniver.", icon: "🎂" },
   { href: "/admin/avisos",    label: "Avisos",    icon: "📢" },
   { href: "/admin/reclamacoes", label: "Reclamações", icon: "💬" },
   { href: "/admin/financeiro",  label: "Financeiro",  icon: "💰" },
@@ -26,6 +27,7 @@ const moradoraItems: NavItem[] = [
   { href: "/moradora/tarefas", label: "Tarefas", icon: "✅" },
   { href: "/moradora/escala", label: "Escala", icon: "📋" },
   { href: "/moradora/calendario", label: "Calendário", icon: "📅" },
+  { href: "/moradora/aniversariantes", label: "Aniver.", icon: "🎂" },
   { href: "/moradora/avisos", label: "Avisos", icon: "📢" },
   { href: "/moradora/financeiro", label: "Financeiro", icon: "💰" },
 ];

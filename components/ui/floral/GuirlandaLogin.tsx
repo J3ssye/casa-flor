@@ -1,18 +1,43 @@
 /**
  * Guirlanda circular estilo logo Casa Flor:
- * — círculo fino rose
- * — flores densas no arco inferior direito (4h–8h)
- * — galhos delicados no arco superior esquerdo
- * — rosas semi-abertas misturadas com margaridas
+ * — anel fino terracota, aberto no arco superior esquerdo
+ * — galhos delicados no topo
+ * — arco inferior direito denso de flores cosmos rosa (pétalas largas, miolo dourado)
+ * — buquês de botões rosa-velho e caules finos misturados
  */
 export default function GuirlandaLogin({ size = 380 }: { size?: number }) {
   const cx = 190, cy = 190, r = 155;
 
-  // Posição polar → cartesiana
+  // Posição polar (0° = topo, sentido horário) → cartesiana
   function pos(deg: number, rr = r): [number, number] {
     const rad = ((deg - 90) * Math.PI) / 180;
     return [cx + rr * Math.cos(rad), cy + rr * Math.sin(rad)];
   }
+
+  const STEM = "#B5654D";
+
+  // ── Flores cosmos ao longo do arco inferior direito (90°→235°) ──
+  const cosmos: { a: number; rr: number; s: number; c1: string; c2: string }[] = [
+    { a: 90,  rr: 150, s: 28, c1: "#ECA3B0", c2: "#F4C6CE" },
+    { a: 116, rr: 153, s: 35, c1: "#E590A0", c2: "#F0B7C1" },
+    { a: 143, rr: 150, s: 41, c1: "#EFB1BC", c2: "#F7D2D8" },
+    { a: 165, rr: 147, s: 43, c1: "#E68FA0", c2: "#F1BAC4" },
+    { a: 186, rr: 151, s: 33, c1: "#ECA3B0", c2: "#F4C6CE" },
+    { a: 210, rr: 152, s: 24, c1: "#E590A0", c2: "#F0B7C1" },
+    { a: 233, rr: 155, s: 17, c1: "#EFB1BC", c2: "#F7D2D8" },
+  ];
+
+  // ── Buquês de botõezinhos (entre/fora das flores) ──
+  const buds: { a: number; rr: number; s: number }[] = [
+    { a: 78,  rr: 157, s: 7 },
+    { a: 103, rr: 159, s: 8 },
+    { a: 130, rr: 161, s: 8 },
+    { a: 154, rr: 162, s: 9 },
+    { a: 176, rr: 162, s: 9 },
+    { a: 199, rr: 160, s: 8 },
+    { a: 222, rr: 158, s: 7 },
+    { a: 246, rr: 156, s: 6 },
+  ];
 
   return (
     <svg
@@ -20,163 +45,127 @@ export default function GuirlandaLogin({ size = 380 }: { size?: number }) {
       viewBox="0 0 380 380"
       className="pointer-events-none select-none"
     >
-      {/* ── Círculo fino ── */}
-      <circle cx={cx} cy={cy} r={r}
-        fill="none" stroke="#C4776A" strokeWidth="1.2" opacity="0.55" />
+      {/* ── Anel fino (aberto no topo esquerdo) ── */}
+      <path
+        d={`M ${pos(312)[0]} ${pos(312)[1]}
+            A ${r} ${r} 0 1 1 ${pos(305)[0]} ${pos(305)[1]}`}
+        fill="none" stroke={STEM} strokeWidth="1.2" opacity="0.6" strokeLinecap="round" />
 
-      {/* ══ ARCO SUPERIOR ESQUERDO (300°–60°) — galhos leves ══ */}
-      {/* Galho no topo esquerdo */}
+      {/* ══ GALHOS LEVES NO TOPO ══ */}
       {[
-        ["M60 105 Q38 78 28 52", "#C4776A", 1.4],
-        ["M45 82 Q28 68 18 52", "#C4776A", 1.0],
-        ["M52 92 Q35 75 26 58", "#C4776A", 0.9],
-      ].map(([d, s, w], i) => (
-        <path key={i} d={d as string} stroke={s as string} strokeWidth={w as number}
-          fill="none" strokeLinecap="round" opacity="0.75" />
+        ["M60 105 Q38 78 28 52", 1.4],
+        ["M45 82 Q28 68 18 52", 1.0],
+        ["M52 92 Q35 75 26 58", 0.9],
+        ["M300 108 Q322 80 336 55", 1.4],
+        ["M316 88 Q334 72 342 56", 1.0],
+        ["M322 96 Q338 78 344 62", 0.9],
+      ].map(([d, w], i) => (
+        <path key={i} d={d as string} stroke={STEM} strokeWidth={w as number}
+          fill="none" strokeLinecap="round" opacity="0.7" />
       ))}
-      {/* Brotinhos topo esquerdo */}
-      {[[28, 52], [18, 52], [26, 58], [20, 68]].map(([x, y], i) => (
+      {[[28, 52], [18, 52], [26, 58], [20, 68], [336, 55], [342, 56], [344, 62], [348, 72]].map(([x, y], i) => (
         <g key={i} transform={`translate(${x},${y})`}>
-          <ellipse cx="0" cy="-6" rx="3.5" ry="6" fill="#EDA090" opacity="0.8" />
-          <ellipse cx="0" cy="-5" rx="2" ry="4" fill="#F5C4B8" opacity="0.9" />
+          <ellipse cx="0" cy="-6" rx="3.2" ry="5.5" fill="#E89AA6" opacity="0.8" />
+          <ellipse cx="0" cy="-5" rx="1.8" ry="3.5" fill="#F4C6CE" opacity="0.9" />
         </g>
       ))}
 
-      {/* Galho topo direito */}
+      {/* ══ Caules finos seguindo o arco inferior ══ */}
+      <path d="M338 232 Q356 270 354 308 Q352 342 330 360" stroke={STEM} strokeWidth="1.3" fill="none" strokeLinecap="round" opacity="0.55" />
+      <path d="M330 360 Q300 376 268 376 Q232 376 204 360" stroke={STEM} strokeWidth="1.3" fill="none" strokeLinecap="round" opacity="0.55" />
+      <path d="M345 250 Q352 262 351 278" stroke={STEM} strokeWidth="1.0" fill="none" strokeLinecap="round" opacity="0.45" />
+      <path d="M204 360 Q192 350 188 336" stroke={STEM} strokeWidth="1.0" fill="none" strokeLinecap="round" opacity="0.45" />
+
+      {/* Folhinhas suaves ao longo do arco */}
       {[
-        ["M300 108 Q322 80 336 55", "#C4776A", 1.4],
-        ["M316 88 Q334 72 342 56", "#C4776A", 1.0],
-        ["M322 96 Q338 78 344 62", "#C4776A", 0.9],
-      ].map(([d, s, w], i) => (
-        <path key={i} d={d as string} stroke={s as string} strokeWidth={w as number}
-          fill="none" strokeLinecap="round" opacity="0.75" />
-      ))}
-      {[[336, 55], [342, 56], [344, 62], [348, 72]].map(([x, y], i) => (
-        <g key={i} transform={`translate(${x},${y})`}>
-          <ellipse cx="0" cy="-6" rx="3.5" ry="6" fill="#EDA090" opacity="0.8" />
-          <ellipse cx="0" cy="-5" rx="2" ry="4" fill="#F5C4B8" opacity="0.85" />
-        </g>
-      ))}
-
-      {/* ══ ARCO INFERIOR DIREITO (60°–240°) — flores densas ══ */}
-
-      {/* Galhos conectores ao longo do arco */}
-      <path d="M340 240 Q356 268 355 300 Q354 330 335 352" stroke="#C4776A" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.65"/>
-      <path d="M335 352 Q310 368 285 370 Q255 372 228 360" stroke="#C4776A" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.65"/>
-      <path d="M336 248 Q348 258 350 272" stroke="#C4776A" strokeWidth="1.1" fill="none" strokeLinecap="round" opacity="0.5"/>
-      <path d="M338 355 Q348 348 352 338" stroke="#C4776A" strokeWidth="1.1" fill="none" strokeLinecap="round" opacity="0.5"/>
-      <path d="M228 360 Q216 352 210 342" stroke="#C4776A" strokeWidth="1.1" fill="none" strokeLinecap="round" opacity="0.5"/>
-
-      {/* ── Margarida grande ~2h ── */}
-      <FlowerGroup type="margarida" cx={336} cy={188} r={28} rot={-15} />
-
-      {/* ── Rosa semi-aberta ~3h ── */}
-      <FlowerGroup type="rosa" cx={348} cy={235} r={24} rot={10} />
-
-      {/* ── Margarida ~4h ── */}
-      <FlowerGroup type="margarida" cx={345} cy={285} r={26} rot={30} c1="#F5C4B8" />
-
-      {/* ── Rosa grande ~5h ── */}
-      <FlowerGroup type="rosa" cx={326} cy={335} r={30} rot={50} />
-
-      {/* ── Margarida ~5:30h ── */}
-      <FlowerGroup type="margarida" cx={292} cy={362} r={22} rot={65} />
-
-      {/* ── Rosa média ~6:30h ── */}
-      <FlowerGroup type="rosa" cx={250} cy={372} r={22} rot={85} c1="#F5C4B8" />
-
-      {/* ── Margarida ~7h ── */}
-      <FlowerGroup type="margarida" cx={212} cy={358} r={20} rot={100} />
-
-      {/* Brotinhos extras */}
-      {[
-        [352, 210], [350, 260], [352, 310], [316, 352], [268, 375],
-        [230, 368], [206, 348],
-      ].map(([x, y], i) => (
-        <g key={i} transform={`translate(${x},${y})`}>
-          <ellipse cx="0" cy="-7" rx="3.8" ry="7" fill="#EDA090" opacity="0.75" />
-          <ellipse cx="0" cy="-6" rx="2.2" ry="4.5" fill="#F5C4B8" opacity="0.85" />
-        </g>
-      ))}
-
-      {/* Folhinhas decorativas */}
-      {[
-        [342, 218, 10], [344, 268, 28], [336, 318, 45],
-        [310, 348, 60], [268, 368, 80], [232, 364, 95],
+        [344, 215, 8], [350, 270, 28], [340, 320, 48],
+        [312, 352, 64], [266, 372, 84], [226, 364, 100],
       ].map(([x, y, rot], i) => (
-        <ellipse key={i} cx={x} cy={y} rx={5} ry={10}
-          fill="#C4776A" opacity={0.3}
+        <ellipse key={i} cx={x} cy={y} rx={4.5} ry={9}
+          fill={STEM} opacity={0.28}
           transform={`rotate(${rot} ${x} ${y})`} />
       ))}
+
+      {/* ══ Buquês de botões ══ */}
+      {buds.map((b, i) => {
+        const [x, y] = pos(b.a, b.rr);
+        return (
+          <g key={i} transform={`translate(${x},${y}) rotate(${b.a})`}>
+            <BudCluster s={b.s} />
+          </g>
+        );
+      })}
+
+      {/* ══ Flores cosmos ══ */}
+      {cosmos.map((f, i) => {
+        const [x, y] = pos(f.a, f.rr);
+        return (
+          <g key={i} transform={`translate(${x},${y}) rotate(${f.a * 0.5})`}>
+            <CosmosSVG r={f.s} c1={f.c1} c2={f.c2} />
+          </g>
+        );
+      })}
     </svg>
   );
 }
 
-/* ── Margarida SVG inline ── */
-function FlowerGroup({
-  type, cx, cy, r, rot = 0, c1 = "#EDA090",
-}: {
-  type: "margarida" | "rosa";
-  cx: number; cy: number; r: number; rot?: number; c1?: string;
-}) {
-  return (
-    <g transform={`translate(${cx},${cy}) rotate(${rot})`}>
-      {type === "margarida" ? <MargaridaSVG r={r} c1={c1} /> : <RosaSVG r={r} />}
-    </g>
-  );
-}
-
-function MargaridaSVG({ r, c1 = "#EDA090" }: { r: number; c1?: string }) {
-  const petals = 13;
+/* ── Flor cosmos: 8 pétalas largas com tip levemente recortado + miolo dourado ── */
+function CosmosSVG({ r, c1, c2 }: { r: number; c1: string; c2: string }) {
+  const petals = 8;
+  const L = r * 1.18;
+  const w = r * 0.42;
+  const petal = `
+    M 0 0
+    C ${-w} ${-L * 0.42}, ${-w} ${-L * 0.86}, ${-w * 0.42} ${-L * 0.99}
+    Q 0 ${-L * 0.9} ${w * 0.42} ${-L * 0.99}
+    C ${w} ${-L * 0.86}, ${w} ${-L * 0.42}, 0 0
+    Z`;
   return (
     <>
       {Array.from({ length: petals }).map((_, i) => (
-        <ellipse key={i} cx="0" cy={-(r * 1.8)}
-          rx={r * 0.36} ry={r * 0.92}
-          fill={c1}
-          transform={`rotate(${(i * 360) / petals})`}
-        />
+        <g key={i} transform={`rotate(${(i * 360) / petals})`}>
+          <path d={petal} fill={c1} />
+          {/* nervura clara central */}
+          <path
+            d={`M 0 ${-L * 0.05} C ${-w * 0.28} ${-L * 0.45}, ${-w * 0.24} ${-L * 0.82}, 0 ${-L * 0.92}
+                C ${w * 0.24} ${-L * 0.82}, ${w * 0.28} ${-L * 0.45}, 0 ${-L * 0.05} Z`}
+            fill={c2} opacity="0.65" />
+        </g>
       ))}
-      <circle cx="0" cy="0" r={r * 0.68} fill="#E07A50" />
-      <circle cx="0" cy="0" r={r * 0.44} fill="#C4573A" />
-      {Array.from({ length: 7 }).map((_, i) => {
-        const rad = ((i * 360) / 7) * (Math.PI / 180);
+      {/* miolo dourado */}
+      <circle r={r * 0.34} fill="#E8B24E" />
+      <circle r={r * 0.22} fill="#D89A36" />
+      {Array.from({ length: 8 }).map((_, i) => {
+        const rad = ((i * 360) / 8) * (Math.PI / 180);
         return (
           <circle key={i}
-            cx={r * 0.28 * Math.cos(rad)}
-            cy={r * 0.28 * Math.sin(rad)}
-            r={r * 0.09} fill="#EDA090" />
+            cx={r * 0.22 * Math.cos(rad)}
+            cy={r * 0.22 * Math.sin(rad)}
+            r={r * 0.05} fill="#B97A28" />
         );
       })}
+      <circle r={r * 0.07} fill="#C98A2E" />
     </>
   );
 }
 
-function RosaSVG({ r }: { r: number }) {
+/* ── Buquê de pequenos botões rosa-velho ── */
+function BudCluster({ s = 8 }: { s?: number }) {
+  const dots: [number, number, number][] = [
+    [0, 0, 1], [-s * 1.0, -s * 0.5, 0.85], [s * 0.9, -s * 0.6, 0.85],
+    [-s * 0.3, -s * 1.3, 0.8], [s * 0.5, -s * 1.5, 0.75], [-s * 1.3, -s * 1.4, 0.7],
+  ];
   return (
     <>
-      {[0, 72, 144, 216, 288].map((a, i) => (
-        <ellipse key={`s${i}`} cx="0" cy={r * 0.82}
-          rx={r * 0.22} ry={r * 0.46} fill="#C4776A" opacity="0.38"
-          transform={`rotate(${a})`} />
+      {dots.map(([x, y, sc], i) => (
+        <g key={i} transform={`translate(${x},${y}) scale(${sc})`}>
+          {[0, 72, 144, 216, 288].map((a, j) => (
+            <ellipse key={j} cx="0" cy={-s * 0.55} rx={s * 0.3} ry={s * 0.55}
+              fill="#D98592" opacity="0.85" transform={`rotate(${a})`} />
+          ))}
+          <circle r={s * 0.3} fill="#E8B24E" />
+        </g>
       ))}
-      {[0, 51, 102, 153, 204, 255, 306].map((a, i) => (
-        <ellipse key={`pe${i}`} cx="0" cy={-(r * 0.52)}
-          rx={r * 0.37} ry={r * 0.62} fill="#EDA090" opacity="0.75"
-          transform={`rotate(${a})`} />
-      ))}
-      {[25, 85, 145, 205, 265, 325].map((a, i) => (
-        <ellipse key={`pm${i}`} cx="0" cy={-(r * 0.4)}
-          rx={r * 0.32} ry={r * 0.5} fill="#E07A68" opacity="0.85"
-          transform={`rotate(${a})`} />
-      ))}
-      {[0, 72, 144, 216, 288].map((a, i) => (
-        <ellipse key={`pi${i}`} cx="0" cy={-(r * 0.26)}
-          rx={r * 0.25} ry={r * 0.36} fill="#C4776A" opacity="0.9"
-          transform={`rotate(${a})`} />
-      ))}
-      <circle cx="0" cy="0" r={r * 0.2} fill="#A85E52" />
-      <circle cx="0" cy="0" r={r * 0.11} fill="#8B3A35" />
     </>
   );
 }

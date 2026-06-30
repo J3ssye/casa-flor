@@ -67,6 +67,7 @@ model User {
   entradaEm    DateTime?
   saidaPrevista DateTime?
   cor          String?  // chave da paleta (lib/cores) — cor da moradora no calendário
+  dataNascimento DateTime? // aniversário (usado no mural de aniversariantes)
   criadoEm    DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 

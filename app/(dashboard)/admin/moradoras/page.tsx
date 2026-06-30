@@ -18,12 +18,13 @@ interface Moradora {
   entradaEm: string | null;
   saidaPrevista: string | null;
   cor: string | null;
+  dataNascimento: string | null;
   criadoEm: string;
 }
 
 const formVazio = {
   nome: "", email: "", senha: "", role: "MORADORA",
-  entradaEm: "", saidaPrevista: "", indefinida: true, cor: "",
+  entradaEm: "", saidaPrevista: "", indefinida: true, cor: "", dataNascimento: "",
 };
 
 function formatarData(iso: string | null) {
@@ -74,6 +75,7 @@ export default function MoradorasPage() {
       saidaPrevista: m.saidaPrevista ? m.saidaPrevista.split("T")[0] : "",
       indefinida: !m.saidaPrevista,
       cor: m.cor ?? "",
+      dataNascimento: m.dataNascimento ? m.dataNascimento.split("T")[0] : "",
     });
     setErro("");
     setModalAberto(true);
@@ -93,6 +95,7 @@ export default function MoradorasPage() {
       entradaEm: form.entradaEm || null,
       saidaPrevista: form.indefinida ? null : (form.saidaPrevista || null),
       cor: form.cor || null,
+      dataNascimento: form.dataNascimento || null,
     };
     if (form.senha) body.senha = form.senha;
     if (!editando && !form.senha) {
@@ -227,6 +230,12 @@ export default function MoradorasPage() {
               <option value="ADMIN">Administradora</option>
             </select>
           </div>
+
+          <DateInput
+            label="Data de nascimento (aniversário)"
+            value={form.dataNascimento}
+            onChange={(e) => setForm({ ...form, dataNascimento: e.target.value })}
+          />
 
           {/* Permanência */}
           <div className="border border-gray-200 rounded-xl p-4 space-y-3">

@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 
 const SELECT = {
   id: true, nome: true, email: true, role: true, ativo: true,
-  entradaEm: true, saidaPrevista: true, criadoEm: true,
+  entradaEm: true, saidaPrevista: true, cor: true, criadoEm: true,
 };
 
 export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
@@ -22,7 +22,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (error) return error;
 
   const body = await req.json();
-  const { nome, email, role, ativo, senha, entradaEm, saidaPrevista } = body;
+  const { nome, email, role, ativo, senha, entradaEm, saidaPrevista, cor } = body;
 
   const data: Record<string, unknown> = {};
   if (nome !== undefined) data.nome = nome;
@@ -30,6 +30,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (role !== undefined) data.role = role === "ADMIN" ? "ADMIN" : "MORADORA";
   if (ativo !== undefined) data.ativo = ativo;
   if (senha) data.senha = await bcrypt.hash(senha, 12);
+  if (cor !== undefined) data.cor = cor || null;
   if ("entradaEm" in body) data.entradaEm = entradaEm ? new Date(entradaEm) : null;
   if ("saidaPrevista" in body) data.saidaPrevista = saidaPrevista ? new Date(saidaPrevista) : null;
 

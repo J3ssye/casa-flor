@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     orderBy: [{ dataInicio: "asc" }, { tarefa: { titulo: "asc" } }],
     include: {
       tarefa: { include: { area: { select: { nome: true } } } },
-      responsavel: { select: { id: true, nome: true } },
+      responsavel: { select: { id: true, nome: true, cor: true } },
       conclusao: true,
       marcacoes: { select: { data: true } },
     },
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     },
     include: {
       tarefa: { include: { area: { select: { nome: true } } } },
-      responsavel: { select: { id: true, nome: true } },
+      responsavel: { select: { id: true, nome: true, cor: true } },
     },
   });
 

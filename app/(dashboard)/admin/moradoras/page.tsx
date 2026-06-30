@@ -7,6 +7,7 @@ import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import Input from "@/components/ui/Input";
 import DateInput from "@/components/ui/DateInput";
+import { PALETA_CORES, corDaModadora } from "@/lib/cores";
 
 interface Moradora {
   id: string;
@@ -16,12 +17,13 @@ interface Moradora {
   ativo: boolean;
   entradaEm: string | null;
   saidaPrevista: string | null;
+  cor: string | null;
   criadoEm: string;
 }
 
 const formVazio = {
   nome: "", email: "", senha: "", role: "MORADORA",
-  entradaEm: "", saidaPrevista: "", indefinida: true,
+  entradaEm: "", saidaPrevista: "", indefinida: true, cor: "",
 };
 
 function formatarData(iso: string | null) {
@@ -71,6 +73,7 @@ export default function MoradorasPage() {
       entradaEm: m.entradaEm ? m.entradaEm.split("T")[0] : "",
       saidaPrevista: m.saidaPrevista ? m.saidaPrevista.split("T")[0] : "",
       indefinida: !m.saidaPrevista,
+      cor: m.cor ?? "",
     });
     setErro("");
     setModalAberto(true);
@@ -89,6 +92,7 @@ export default function MoradorasPage() {
       role: form.role,
       entradaEm: form.entradaEm || null,
       saidaPrevista: form.indefinida ? null : (form.saidaPrevista || null),
+      cor: form.cor || null,
     };
     if (form.senha) body.senha = form.senha;
     if (!editando && !form.senha) {
@@ -141,10 +145,16 @@ export default function MoradorasPage() {
         <p className="text-gray-500">Carregando…</p>
       ) : (
         <div className="space-y-3">
-          {ativas.map((m) => (
+          {ativas.map((m, i) => (
             <Card key={m.id} className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-medium text-gray-900">{m.nome}</p>
+                <p className="font-medium text-gray-900 flex items-center gap-2">
+                  <span
+                    className="w-3 h-3 rounded-full inline-block border border-black/10 flex-shrink-0"
+                    style={{ backgroundColor: corDaModadora(m.cor, i).swatch }}
+                  />
+                  {m.nome}
+                </p>
                 <p className="text-sm text-gray-500">{m.email}</p>
                 {labelPermanencia(m) && (
                   <p className="text-xs text-gray-400 mt-0.5">{labelPermanencia(m)}</p>
@@ -243,6 +253,42 @@ export default function MoradorasPage() {
                 min={form.entradaEm || undefined}
               />
             )}
+          </div>
+
+          {/* Cor da moradora */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+              Cor da moradora <span className="text-gray-400 font-normal">(calendário e etiquetas)</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, cor: "" })}
+                title="Automática"
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-[9px] text-gray-500 bg-gray-100 transition-transform hover:scale-110 ${
+                  form.cor === "" ? "ring-2 ring-offset-2 ring-gray-700" : "border border-gray-200"
+                }`}
+              >
+                auto
+              </button>
+              {PALETA_CORES.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={() => setForm({ ...form, cor: c.key })}
+                  title={c.label}
+                  className={`w-9 h-9 rounded-full transition-transform hover:scale-110 ${
+                    form.cor === c.key ? "ring-2 ring-offset-2 ring-gray-700 border border-white" : "border border-black/10"
+                  }`}
+                  style={{ backgroundColor: c.swatch }}
+                />
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 mt-1.5">
+              {form.cor
+                ? `Selecionada: ${PALETA_CORES.find((c) => c.key === form.cor)?.label}`
+                : "Automática — o sistema escolhe uma cor da paleta."}
+            </p>
           </div>
 
           {erro && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-2">{erro}</p>}

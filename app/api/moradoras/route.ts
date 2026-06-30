@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 
 const SELECT = {
   id: true, nome: true, email: true, role: true, ativo: true,
-  entradaEm: true, saidaPrevista: true, criadoEm: true,
+  entradaEm: true, saidaPrevista: true, cor: true, criadoEm: true,
 };
 
 export async function GET() {
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   if (error) return error;
 
   const body = await req.json();
-  const { nome, email, senha, role, entradaEm, saidaPrevista } = body;
+  const { nome, email, senha, role, entradaEm, saidaPrevista, cor } = body;
 
   if (!nome || !email || !senha) {
     return NextResponse.json({ error: "nome, email e senha são obrigatórios" }, { status: 400 });
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
       role: role === "ADMIN" ? "ADMIN" : "MORADORA",
       entradaEm: entradaEm ? new Date(entradaEm) : null,
       saidaPrevista: saidaPrevista ? new Date(saidaPrevista) : null,
+      cor: cor || null,
     },
     select: SELECT,
   });

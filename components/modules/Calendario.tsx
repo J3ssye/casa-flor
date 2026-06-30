@@ -5,6 +5,7 @@ import Modal from "@/components/ui/Modal";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { gerarOcorrencias, parseDataUTC } from "@/lib/ocorrencias";
+import { corDaModadora } from "@/lib/cores";
 
 interface EscalaItem {
   id: string;
@@ -17,7 +18,7 @@ interface EscalaItem {
   modoDias: string;
   marcacoes: string[];
   tarefa: { titulo: string; area: { nome: string } };
-  responsavel: { id: string; nome: string };
+  responsavel: { id: string; nome: string; cor: string | null };
 }
 
 interface EventoDia {
@@ -29,21 +30,6 @@ interface EventoDia {
 
 const DIAS_SEMANA = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const DIAS_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-
-const CORES = [
-  { bg: "#fce7f3", text: "#9d174d", border: "#f9a8d4" },
-  { bg: "#dbeafe", text: "#1e40af", border: "#93c5fd" },
-  { bg: "#d1fae5", text: "#065f46", border: "#6ee7b7" },
-  { bg: "#fef3c7", text: "#92400e", border: "#fcd34d" },
-  { bg: "#ede9fe", text: "#5b21b6", border: "#c4b5fd" },
-  { bg: "#fee2e2", text: "#991b1b", border: "#fca5a5" },
-  { bg: "#e0f2fe", text: "#0c4a6e", border: "#7dd3fc" },
-  { bg: "#fdf4ff", text: "#86198f", border: "#e879f9" },
-  { bg: "#ecfdf5", text: "#14532d", border: "#4ade80" },
-  { bg: "#fff7ed", text: "#9a3412", border: "#fb923c" },
-];
-
-function corPorIdx(idx: number) { return CORES[idx % CORES.length]; }
 
 function statusLabel(s: string, pct: number) {
   if (s === "CONCLUIDA") return "Concluída";
@@ -142,11 +128,10 @@ export default function Calendario() {
 
   const legenda = Object.entries(moradoras)
     .sort((a, b) => a[1] - b[1])
-    .map(([id, idx]) => ({
-      id,
-      nome: itens.find(i => i.responsavel.id === id)?.responsavel.nome ?? id,
-      cor:  corPorIdx(idx),
-    }));
+    .map(([id, idx]) => {
+      const r = itens.find(i => i.responsavel.id === id)?.responsavel;
+      return { id, nome: r?.nome ?? id, cor: corDaModadora(r?.cor, idx) };
+    });
 
   const mesNome = new Date(ano, mes, 1).toLocaleDateString("pt-BR", {
     month: "long", year: "numeric",
@@ -230,7 +215,7 @@ export default function Calendario() {
                       <div className="space-y-0.5">
                         {visiveis.map((ev, ei) => {
                           const cidx = moradoras[ev.item.responsavel.id] ?? 0;
-                          const c    = corPorIdx(cidx);
+                          const c    = corDaModadora(ev.item.responsavel.cor, cidx);
                           return (
                             <button
                               key={`${ev.item.id}-${ei}`}

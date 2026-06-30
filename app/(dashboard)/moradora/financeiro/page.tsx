@@ -40,16 +40,24 @@ export default function FinanceiroMoradoraPage() {
 
   async function carregar() {
     setCarregando(true);
-    const [dRes, iRes, mRes] = await Promise.all([
-      fetch(`/api/financeiro/despesas?mes=${mes}`),
-      fetch("/api/items-casa"),
-      fetch("/api/moradoras"),
-    ]);
-    setDespesas(await dRes.json());
-    setItens(await iRes.json());
-    const m = await mRes.json();
-    setTotalMoradoras(m.filter((x: { ativo: boolean }) => x.ativo).length);
-    setCarregando(false);
+    try {
+      const [dRes, iRes, mRes] = await Promise.all([
+        fetch(`/api/financeiro/despesas?mes=${mes}`),
+        fetch("/api/items-casa"),
+        fetch("/api/moradoras/ativas"),
+      ]);
+      const d = await dRes.json();
+      const i = await iRes.json();
+      const m = await mRes.json();
+      setDespesas(Array.isArray(d) ? d : []);
+      setItens(Array.isArray(i) ? i : []);
+      setTotalMoradoras(Array.isArray(m) ? m.length : 0);
+    } catch {
+      setDespesas([]);
+      setItens([]);
+    } finally {
+      setCarregando(false);
+    }
   }
 
   useEffect(() => { carregar(); }, [mes]);

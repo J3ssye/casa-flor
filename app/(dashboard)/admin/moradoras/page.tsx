@@ -193,11 +193,11 @@ export default function MoradorasPage() {
             placeholder="Maria Silva"
           />
           <Input
-            label="E-mail"
-            type="email"
+            label="Usuário ou e-mail (login)"
+            type="text"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            placeholder="maria@email.com"
+            placeholder="ex: maria ou maria@email.com"
           />
           <Input
             label={editando ? "Nova senha (deixe em branco para manter)" : "Senha"}

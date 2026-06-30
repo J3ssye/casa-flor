@@ -34,6 +34,7 @@ export default function FinanceiroMoradoraPage() {
   const [totalMoradoras, setTotalMoradoras] = useState(0);
   const [carregando, setCarregando] = useState(true);
   const [modalAberto, setModalAberto] = useState(false);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
   const [form, setForm] = useState(formVazio);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
@@ -72,27 +73,56 @@ export default function FinanceiroMoradoraPage() {
     }));
   }
 
+  function abrirCriacao() {
+    setEditandoId(null);
+    setForm(formVazio);
+    setErro("");
+    setModalAberto(true);
+  }
+
+  function abrirEdicao(d: Despesa) {
+    setEditandoId(d.id);
+    setForm({
+      itemCasaId: d.itemCasa?.id ?? "",
+      descricao: d.descricao,
+      quantidade: d.quantidade != null ? String(Number(d.quantidade)) : "",
+      unidade: d.unidade ?? "",
+      valor: String(Number(d.valor)),
+      dataDespesa: d.dataDespesa.split("T")[0],
+    });
+    setErro("");
+    setModalAberto(true);
+  }
+
+  function fecharModal() {
+    setModalAberto(false);
+    setEditandoId(null);
+  }
+
   async function salvar() {
     setSalvando(true);
     setErro("");
     if (!form.itemCasaId) { setErro("Selecione um item"); setSalvando(false); return; }
 
-    const res = await fetch("/api/financeiro/despesas", {
-      method: "POST",
+    const body: Record<string, unknown> = {
+      descricao: form.descricao || itens.find(i => i.id === form.itemCasaId)?.nome,
+      valor: parseFloat(form.valor),
+      dataDespesa: form.dataDespesa,
+      itemCasaId: form.itemCasaId,
+      quantidade: form.quantidade ? parseFloat(form.quantidade) : null,
+      unidade: form.unidade || null,
+    };
+    if (!editandoId) body.categoria = "OUTRO";
+
+    const url = editandoId ? `/api/financeiro/despesas/${editandoId}` : "/api/financeiro/despesas";
+    const res = await fetch(url, {
+      method: editandoId ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        descricao: form.descricao || itens.find(i => i.id === form.itemCasaId)?.nome,
-        valor: parseFloat(form.valor),
-        categoria: "OUTRO",
-        dataDespesa: form.dataDespesa,
-        itemCasaId: form.itemCasaId,
-        quantidade: form.quantidade ? parseFloat(form.quantidade) : null,
-        unidade: form.unidade || null,
-      }),
+      body: JSON.stringify(body),
     });
     setSalvando(false);
     if (!res.ok) { setErro((await res.json()).error ?? "Erro ao salvar"); return; }
-    setModalAberto(false);
+    fecharModal();
     setForm(formVazio);
     carregar();
   }
@@ -117,7 +147,7 @@ export default function FinanceiroMoradoraPage() {
         <div className="flex gap-2 items-center">
           <input type="month" lang="pt-BR" value={mes} onChange={e => setMes(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-xl text-sm" />
-          <Button onClick={() => { setForm(formVazio); setErro(""); setModalAberto(true); }}>
+          <Button onClick={abrirCriacao}>
             + Registrar compra
           </Button>
         </div>
@@ -186,8 +216,9 @@ export default function FinanceiroMoradoraPage() {
                         {" · "}{new Date(d.dataDespesa).toLocaleDateString("pt-BR")}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <span className="font-semibold text-gray-800 text-sm">{fmt(Number(d.valor))}</span>
+                      <Button variant="ghost" size="sm" onClick={() => abrirEdicao(d)}>✎</Button>
                       <Button variant="ghost" size="sm" onClick={() => excluir(d.id)}>✕</Button>
                     </div>
                   </Card>
@@ -211,9 +242,7 @@ export default function FinanceiroMoradoraPage() {
                         {" · "}{new Date(d.dataDespesa).toLocaleDateString("pt-BR")}
                       </p>
                     </div>
-                    <span className="font-semibold text-gray-600 flex-shrink-0 text-sm">
-                      {fmt(Number(d.valor))}
-                    </span>
+                    <span className="text-gray-300 flex-shrink-0 text-xs italic">valor oculto</span>
                   </Card>
                 ))}
               </div>
@@ -228,7 +257,7 @@ export default function FinanceiroMoradoraPage() {
         </>
       )}
 
-      <Modal aberto={modalAberto} onFechar={() => setModalAberto(false)} titulo="Registrar compra">
+      <Modal aberto={modalAberto} onFechar={fecharModal} titulo={editandoId ? "Editar compra" : "Registrar compra"}>
         <div className="space-y-4">
           <div>
             <label className="text-sm font-medium text-gray-700 mb-1 block">Item da casa</label>
@@ -262,9 +291,9 @@ export default function FinanceiroMoradoraPage() {
           </div>
           {erro && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-2">{erro}</p>}
           <div className="flex gap-3 pt-2">
-            <Button variant="secondary" className="flex-1" onClick={() => setModalAberto(false)}>Cancelar</Button>
+            <Button variant="secondary" className="flex-1" onClick={fecharModal}>Cancelar</Button>
             <Button className="flex-1" onClick={salvar} disabled={salvando}>
-              {salvando ? "Salvando…" : "Registrar"}
+              {salvando ? "Salvando…" : editandoId ? "Salvar" : "Registrar"}
             </Button>
           </div>
         </div>

@@ -43,6 +43,7 @@ export default function FinanceiroAdminPage() {
 
   // Modal lançamento
   const [modalLanc, setModalLanc] = useState(false);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
   const [tipo, setTipo] = useState<TipoLancamento>("ITEM");
   const [form, setForm] = useState({
     descricao: "", valor: "", dataDespesa: "",
@@ -80,8 +81,25 @@ export default function FinanceiroAdminPage() {
   useEffect(() => { carregar(); }, [mes]);
 
   function abrirLancamento() {
+    setEditandoId(null);
     setTipo("ITEM");
     setForm({ descricao: "", valor: "", dataDespesa: "", pagadorId: "", itemCasaId: "", quantidade: "", unidade: "" });
+    setErro("");
+    setModalLanc(true);
+  }
+
+  function abrirEdicao(d: Despesa) {
+    setEditandoId(d.id);
+    setTipo(d.categoria === "ALUGUEL" ? "ALUGUEL" : d.categoria === "GAS" ? "GAS" : "ITEM");
+    setForm({
+      descricao: d.descricao,
+      valor: String(Number(d.valor)),
+      dataDespesa: d.dataDespesa.split("T")[0],
+      pagadorId: d.pagador.id,
+      itemCasaId: d.itemCasa?.id ?? "",
+      quantidade: d.quantidade != null ? String(Number(d.quantidade)) : "",
+      unidade: d.unidade ?? "",
+    });
     setErro("");
     setModalLanc(true);
   }
@@ -115,16 +133,22 @@ export default function FinanceiroAdminPage() {
       body.itemCasaId = form.itemCasaId;
       body.quantidade = form.quantidade ? parseFloat(form.quantidade) : null;
       body.unidade = form.unidade || null;
+    } else {
+      body.itemCasaId = null;
+      body.quantidade = null;
+      body.unidade = null;
     }
 
-    const res = await fetch("/api/financeiro/despesas", {
-      method: "POST",
+    const url = editandoId ? `/api/financeiro/despesas/${editandoId}` : "/api/financeiro/despesas";
+    const res = await fetch(url, {
+      method: editandoId ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     setSalvando(false);
     if (!res.ok) { setErro((await res.json()).error ?? "Erro ao salvar"); return; }
     setModalLanc(false);
+    setEditandoId(null);
     carregar();
   }
 
@@ -205,7 +229,7 @@ export default function FinanceiroAdminPage() {
           {alugueis.length > 0 && (
             <Section titulo="Aluguéis">
               {alugueis.map(d => (
-                <DespesaCard key={d.id} d={d} onExcluir={excluir} />
+                <DespesaCard key={d.id} d={d} onExcluir={excluir} onEditar={abrirEdicao} />
               ))}
             </Section>
           )}
@@ -235,8 +259,9 @@ export default function FinanceiroAdminPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <span className="font-semibold text-gray-800">{fmt(Number(d.valor))}</span>
+                        <Button variant="ghost" size="sm" onClick={() => abrirEdicao(d)}>✎</Button>
                         <Button variant="ghost" size="sm" onClick={() => excluir(d.id)}>✕</Button>
                       </div>
                     </div>
@@ -255,7 +280,7 @@ export default function FinanceiroAdminPage() {
                     {item?.nome ?? "Sem item"}
                   </p>
                   {registros.map(d => (
-                    <DespesaCard key={d.id} d={d} onExcluir={excluir} showQtd />
+                    <DespesaCard key={d.id} d={d} onExcluir={excluir} onEditar={abrirEdicao} showQtd />
                   ))}
                 </div>
               ))}
@@ -269,7 +294,7 @@ export default function FinanceiroAdminPage() {
       )}
 
       {/* Modal: novo lançamento */}
-      <Modal aberto={modalLanc} onFechar={() => setModalLanc(false)} titulo="Novo lançamento">
+      <Modal aberto={modalLanc} onFechar={() => { setModalLanc(false); setEditandoId(null); }} titulo={editandoId ? "Editar lançamento" : "Novo lançamento"}>
         <div className="space-y-4">
           {/* Tipo */}
           <div>
@@ -350,9 +375,9 @@ export default function FinanceiroAdminPage() {
 
           {erro && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-2">{erro}</p>}
           <div className="flex gap-3 pt-2">
-            <Button variant="secondary" className="flex-1" onClick={() => setModalLanc(false)}>Cancelar</Button>
+            <Button variant="secondary" className="flex-1" onClick={() => { setModalLanc(false); setEditandoId(null); }}>Cancelar</Button>
             <Button className="flex-1" onClick={salvarLancamento} disabled={salvando}>
-              {salvando ? "Salvando…" : "Salvar"}
+              {salvando ? "Salvando…" : editandoId ? "Salvar alterações" : "Salvar"}
             </Button>
           </div>
         </div>
@@ -408,9 +433,9 @@ function Section({ titulo, children }: { titulo: string; children: React.ReactNo
 }
 
 function DespesaCard({
-  d, onExcluir, showQtd,
+  d, onExcluir, onEditar, showQtd,
 }: {
-  d: Despesa; onExcluir: (id: string) => void; showQtd?: boolean;
+  d: Despesa; onExcluir: (id: string) => void; onEditar?: (d: Despesa) => void; showQtd?: boolean;
 }) {
   return (
     <Card className="flex items-center justify-between gap-3">
@@ -423,10 +448,11 @@ function DespesaCard({
           )}
         </p>
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-1 flex-shrink-0">
         <span className="font-semibold text-gray-800 text-sm">
           {Number(d.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
         </span>
+        {onEditar && <Button variant="ghost" size="sm" onClick={() => onEditar(d)}>✎</Button>}
         <Button variant="ghost" size="sm" onClick={() => onExcluir(d.id)}>✕</Button>
       </div>
     </Card>

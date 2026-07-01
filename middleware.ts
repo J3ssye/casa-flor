@@ -30,6 +30,6 @@ export const config = {
   matcher: [
     "/admin/:path*",
     "/moradora/:path*",
-    "/((?!login|api|_next/static|_next/image|favicon.ico).*)",
+    "/((?!login|api|_next/static|_next/image|favicon.ico|arco-flor.svg).*)",
   ],
 };

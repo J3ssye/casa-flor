@@ -27,6 +27,12 @@ export default function Navbar() {
           <span className="text-sm text-primary-700 hidden sm:block">
             {session?.user.name}
           </span>
+          <Link
+            href="/trocar-senha"
+            className="text-sm text-primary-400 hover:text-primary-700 transition-colors"
+          >
+            Trocar senha
+          </Link>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
             className="text-sm text-primary-400 hover:text-primary-700 transition-colors"

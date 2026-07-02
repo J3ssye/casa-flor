@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import GuirlandaLogin from "@/components/ui/floral/GuirlandaLogin";
 
 export default function LoginPage() {
@@ -72,6 +73,13 @@ export default function LoginPage() {
           >
             {carregando ? "Entrando…" : "Entrar"}
           </button>
+
+          <Link
+            href="/esqueci-senha"
+            className="block text-center text-[11px] text-primary-500 hover:text-primary-700 mt-1"
+          >
+            Esqueci minha senha
+          </Link>
         </form>
       </div>
     </div>

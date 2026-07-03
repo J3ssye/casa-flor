@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 
 const SELECT = {
   id: true, nome: true, email: true, role: true, ativo: true,
-  entradaEm: true, saidaPrevista: true, cor: true, dataNascimento: true, criadoEm: true,
+  entradaEm: true, saidaPrevista: true, cor: true, dataNascimento: true, foto: true, criadoEm: true,
 };
 
 export async function GET() {

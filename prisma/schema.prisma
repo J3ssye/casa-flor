@@ -68,6 +68,7 @@ model User {
   saidaPrevista DateTime?
   cor          String?  // chave da paleta (lib/cores) — cor da moradora no calendário
   dataNascimento DateTime? // aniversário (usado no mural de aniversariantes)
+  foto         String?  // URL da foto de perfil (Vercel Blob)
   criadoEm    DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 

@@ -19,6 +19,7 @@ interface Moradora {
   saidaPrevista: string | null;
   cor: string | null;
   dataNascimento: string | null;
+  foto: string | null;
   criadoEm: string;
 }
 
@@ -47,6 +48,8 @@ export default function MoradorasPage() {
   const [form, setForm] = useState(formVazio);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
+  const [fotoUrl, setFotoUrl] = useState("");
+  const [uploadandoFoto, setUploadandoFoto] = useState(false);
 
   async function carregar() {
     setCarregando(true);
@@ -77,8 +80,26 @@ export default function MoradorasPage() {
       cor: m.cor ?? "",
       dataNascimento: m.dataNascimento ? m.dataNascimento.split("T")[0] : "",
     });
+    setFotoUrl(m.foto ?? "");
     setErro("");
     setModalAberto(true);
+  }
+
+  async function handleFotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !editando) return;
+    setUploadandoFoto(true);
+    const fd = new FormData();
+    fd.append("foto", file);
+    const res = await fetch(`/api/moradoras/${editando.id}/foto`, { method: "POST", body: fd });
+    setUploadandoFoto(false);
+    if (res.ok) { const { url } = await res.json(); setFotoUrl(url); }
+  }
+
+  async function removerFoto() {
+    if (!editando) return;
+    await fetch(`/api/moradoras/${editando.id}/foto`, { method: "DELETE" });
+    setFotoUrl("");
   }
 
   async function salvar() {
@@ -236,6 +257,49 @@ export default function MoradorasPage() {
             value={form.dataNascimento}
             onChange={(e) => setForm({ ...form, dataNascimento: e.target.value })}
           />
+
+          {/* Foto de perfil — só disponível em edição (precisa de ID para upload) */}
+          {editando && (
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">
+                Foto de perfil <span className="text-gray-400 font-normal">(aparece no mural de aniversário)</span>
+              </label>
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
+                  {fotoUrl ? (
+                    <img src={fotoUrl} alt="foto" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xl font-bold">
+                      {editando.nome.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="cursor-pointer inline-block">
+                    <span className="text-sm text-primary-600 hover:text-primary-800 font-medium underline-offset-2 hover:underline">
+                      {uploadandoFoto ? "Enviando…" : fotoUrl ? "Trocar foto" : "Adicionar foto"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadandoFoto}
+                      onChange={handleFotoUpload}
+                    />
+                  </label>
+                  {fotoUrl && !uploadandoFoto && (
+                    <button
+                      type="button"
+                      onClick={removerFoto}
+                      className="text-sm text-red-500 hover:text-red-700 text-left"
+                    >
+                      Remover foto
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Permanência */}
           <div className="border border-gray-200 rounded-xl p-4 space-y-3">

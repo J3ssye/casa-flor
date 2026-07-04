@@ -59,10 +59,8 @@ export default function MuralAniversariantes() {
     return mesDe(m.dataNascimento!) === mesAtual && diaDe(m.dataNascimento!) === diaAtual;
   }
 
-  const aniversariasHoje = doMes.filter(eHoje);
-
   useEffect(() => {
-    if (!carregando && aniversariasHoje.length > 0) setComemorar(true);
+    if (!carregando && doMes.some(eHoje)) setComemorar(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carregando]);
 
@@ -85,30 +83,9 @@ export default function MuralAniversariantes() {
 
       {carregando ? <p className="text-gray-500">Carregando…</p> : (
         <>
-          {/* ── Aniversárias de HOJE — cards Polaroid ── */}
-          {aniversariasHoje.length > 0 && (
-            <div>
-              <p className="text-sm font-semibold text-primary-700 mb-3 flex items-center gap-1.5">
-                🎂 Hoje é aniversário!
-              </p>
-              <div className={`flex flex-wrap gap-6 ${aniversariasHoje.length === 1 ? "justify-center" : "justify-start"}`}>
-                {aniversariasHoje.map((m) => (
-                  <CardAniversarioHoje
-                    key={m.id}
-                    nome={m.nome}
-                    cor={m.cor}
-                    idxCor={idxCor[m.id] ?? 0}
-                    foto={m.foto}
-                    onComemorar={() => setComemorar(true)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── Aniversariantes do mês ── */}
+          {/* ── Cards Polaroid — todas as aniversariantes do mês ── */}
           <div>
-            <p className="text-sm font-semibold text-gray-600 mb-2">
+            <p className="text-sm font-semibold text-gray-600 mb-3">
               Aniversariantes de {MESES[mesAtual]}
             </p>
             {doMes.length === 0 ? (
@@ -118,48 +95,26 @@ export default function MuralAniversariantes() {
                 </p>
               </Card>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex flex-wrap gap-5 justify-start">
                 {doMes.map((m) => {
-                  const c = corDaModadora(m.cor, idxCor[m.id] ?? 0);
                   const hoje = eHoje(m);
                   return (
-                    <div
-                      key={m.id}
-                      className="rounded-2xl border p-4 flex items-center gap-3"
-                      style={{ backgroundColor: c.bg, borderColor: c.border }}
-                    >
-                      {/* Foto ou dia */}
-                      {m.foto ? (
-                        <img
-                          src={m.foto}
-                          alt={m.nome}
-                          className="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2"
-                          style={{ borderColor: c.swatch }}
-                        />
-                      ) : (
-                        <div
-                          className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 text-lg"
-                          style={{ backgroundColor: c.swatch }}
-                        >
-                          {diaDe(m.dataNascimento!)}
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="font-semibold truncate" style={{ color: c.text }}>{m.nome}</p>
-                        <p className="text-xs" style={{ color: c.text }}>
-                          {diaDe(m.dataNascimento!)} de {MESES[mesAtual]}
-                          {hoje && " · é hoje! 🎂"}
-                        </p>
-                      </div>
+                    <div key={m.id} className="flex flex-col items-center gap-1.5">
+                      <CardAniversarioHoje
+                        nome={m.nome}
+                        cor={m.cor}
+                        idxCor={idxCor[m.id] ?? 0}
+                        foto={m.foto}
+                        onComemorar={hoje ? () => setComemorar(true) : undefined}
+                      />
                       {hoje && (
-                        <button
-                          onClick={() => setComemorar(true)}
-                          className="ml-auto text-xs font-medium px-2.5 py-1 rounded-full bg-white/70 flex-shrink-0"
-                          style={{ color: c.text }}
-                        >
-                          🌸
-                        </button>
+                        <span className="text-xs font-semibold text-primary-700 bg-primary-50 rounded-full px-3 py-0.5">
+                          🎂 É hoje!
+                        </span>
                       )}
+                      <span className="text-xs text-gray-400">
+                        {diaDe(m.dataNascimento!)} de {MESES[mesAtual]}
+                      </span>
                     </div>
                   );
                 })}

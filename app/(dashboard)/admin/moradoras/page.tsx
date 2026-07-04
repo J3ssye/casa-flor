@@ -89,16 +89,56 @@ export default function MoradorasPage() {
     const file = e.target.files?.[0];
     if (!file || !editando) return;
     setUploadandoFoto(true);
-    const fd = new FormData();
-    fd.append("foto", file);
-    const res = await fetch(`/api/moradoras/${editando.id}/foto`, { method: "POST", body: fd });
+    setErro("");
+
+    // Redimensiona para 240×240 e converte para JPEG base64
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const size = 240;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d")!;
+        // Crop centralizado
+        const min = Math.min(img.width, img.height);
+        const sx = (img.width - min) / 2;
+        const sy = (img.height - min) / 2;
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.onerror = reject;
+      img.src = url;
+    }).catch(() => "");
+
+    if (!base64) {
+      setErro("Não foi possível processar a imagem.");
+      setUploadandoFoto(false);
+      return;
+    }
+
+    const res = await fetch(`/api/moradoras/${editando.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ foto: base64 }),
+    });
     setUploadandoFoto(false);
-    if (res.ok) { const { url } = await res.json(); setFotoUrl(url); }
+    if (res.ok) {
+      setFotoUrl(base64);
+    } else {
+      setErro("Erro ao salvar a foto.");
+    }
   }
 
   async function removerFoto() {
     if (!editando) return;
-    await fetch(`/api/moradoras/${editando.id}/foto`, { method: "DELETE" });
+    await fetch(`/api/moradoras/${editando.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ foto: null }),
+    });
     setFotoUrl("");
   }
 

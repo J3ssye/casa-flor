@@ -34,14 +34,20 @@ export async function GET(req: NextRequest) {
       tarefa: { include: { area: { select: { nome: true } } } },
       responsavel: { select: { id: true, nome: true, cor: true } },
       conclusao: true,
-      marcacoes: { select: { data: true } },
+      marcacoes: { select: { data: true, dataConclusao: true } },
     },
   });
 
-  // Serializa marcacoes como array de "YYYY-MM-DD"
+  // Serializa marcacoes como array de "YYYY-MM-DD" + mapa de datas reais de conclusão
+  // (quando a tarefa foi feita em dia diferente do programado)
   const out = itens.map(i => ({
     ...i,
     marcacoes: i.marcacoes.map(m => m.data.toISOString().slice(0, 10)),
+    marcacoesReais: Object.fromEntries(
+      i.marcacoes
+        .filter(m => m.dataConclusao)
+        .map(m => [m.data.toISOString().slice(0, 10), m.dataConclusao!.toISOString().slice(0, 10)])
+    ),
   }));
 
   return NextResponse.json(out);

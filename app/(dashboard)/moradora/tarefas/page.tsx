@@ -8,7 +8,7 @@ import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import {
   gerarOcorrencias, agruparPorSemana, calcularConclusao,
-  parseDataUTC, labelDia,
+  parseDataUTC, labelDia, isoData,
 } from "@/lib/ocorrencias";
 
 interface EscalaItem {
@@ -21,6 +21,7 @@ interface EscalaItem {
   diasSemana: number[];
   modoDias: string;
   marcacoes: string[];
+  marcacoesReais: Record<string, string>; // data programada → data em que foi feita, se diferente
   tarefa: { titulo: string; descricao: string | null; area: { nome: string } };
   responsavel: { id: string; nome: string };
 }
@@ -55,6 +56,7 @@ export default function MinhasTarefasPage() {
   const [carregando, setCarregando] = useState(true);
   const [sel, setSel]       = useState<EscalaItem | null>(null);
   const [marc, setMarc]     = useState<string[]>([]);   // datas marcadas do item aberto
+  const [marcReais, setMarcReais] = useState<Record<string, string>>({}); // data programada → data real de conclusão
   const [observacao, setObservacao] = useState("");
   const [salvandoObs, setSalvandoObs] = useState(false);
   const [mes, setMes]       = useState(mesAtual());
@@ -80,25 +82,38 @@ export default function MinhasTarefasPage() {
   function abrirModal(item: EscalaItem) {
     setSel(item);
     setMarc(item.marcacoes ?? []);
+    setMarcReais(item.marcacoesReais ?? {});
     setObservacao(item.observacaoMoradora ?? "");
   }
 
-  async function toggleDia(data: string, feito: boolean) {
+  /**
+   * Marca/desmarca um dia programado como feito.
+   * dataConclusao é o dia em que a tarefa foi de fato realizada, se diferente
+   * do dia programado (ex: programada segunda, feita terça) — o calendário
+   * passa a exibi-la no dia real, não no programado.
+   */
+  async function toggleDia(data: string, feito: boolean, dataConclusao?: string) {
     if (!sel) return;
     // Atualização otimista
     setMarc(prev => feito ? (prev.includes(data) ? prev : [...prev, data]) : prev.filter(d => d !== data));
+    setMarcReais(prev => {
+      if (!feito) { const { [data]: _omit, ...rest } = prev; return rest; }
+      if (!dataConclusao || dataConclusao === data) { const { [data]: _omit, ...rest } = prev; return rest; }
+      return { ...prev, [data]: dataConclusao };
+    });
     const res = await fetch(`/api/escala/${sel.id}/marcacao`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data, feito }),
+      body: JSON.stringify({ data, feito, dataConclusao }),
     });
     if (res.ok) {
       const d = await res.json();
       setMarc(d.marcacoes);
+      setMarcReais(d.marcacoesReais ?? {});
       // Atualiza o item na lista (percentual/status)
       setItens(prev => prev.map(i =>
         i.id === sel.id
-          ? { ...i, marcacoes: d.marcacoes, percentualConclusao: d.percentual,
+          ? { ...i, marcacoes: d.marcacoes, marcacoesReais: d.marcacoesReais ?? {}, percentualConclusao: d.percentual,
               status: d.percentual >= 100 ? "CONCLUIDA" : i.status === "CONCLUIDA" ? "PENDENTE" : i.status }
           : i
       ));
@@ -258,19 +273,36 @@ export default function MinhasTarefasPage() {
                 </p>
                 {gerarOcorrencias(sel).map(oc => {
                   const feito = marc.includes(oc.data);
+                  const dataReal = marcReais[oc.data] ?? oc.data;
                   return (
-                    <button key={oc.data}
-                      onClick={() => toggleDia(oc.data, !feito)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors ${
-                        feito ? "bg-green-50 border-green-300" : "bg-white border-gray-200 hover:border-primary-300"
+                    <div key={oc.data}
+                      className={`rounded-xl border transition-colors ${
+                        feito ? "bg-green-50 border-green-300" : "bg-white border-gray-200"
                       }`}>
-                      <span className={`w-5 h-5 rounded flex items-center justify-center text-white text-xs ${feito ? "bg-green-500" : "bg-gray-300"}`}>
-                        {feito ? "✓" : ""}
-                      </span>
-                      <span className={`text-sm ${feito ? "text-gray-500 line-through" : "text-gray-700"}`}>
-                        {rotuloData(oc.data)}
-                      </span>
-                    </button>
+                      <button
+                        onClick={() => toggleDia(oc.data, !feito)}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:opacity-80">
+                        <span className={`w-5 h-5 rounded flex items-center justify-center text-white text-xs flex-shrink-0 ${feito ? "bg-green-500" : "bg-gray-300"}`}>
+                          {feito ? "✓" : ""}
+                        </span>
+                        <span className={`text-sm ${feito ? "text-gray-500 line-through" : "text-gray-700"}`}>
+                          {rotuloData(oc.data)}
+                        </span>
+                      </button>
+                      {feito && (
+                        <div className="flex items-center gap-2 pl-11 pb-2 -mt-0.5">
+                          <span className="text-xs text-gray-400">Feito em:</span>
+                          <input
+                            type="date"
+                            value={dataReal}
+                            min={sel.dataInicio.slice(0, 10)}
+                            max={isoData(new Date())}
+                            onChange={e => toggleDia(oc.data, true, e.target.value)}
+                            className="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600"
+                          />
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>

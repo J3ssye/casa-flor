@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Modal from "@/components/ui/Modal";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import { gerarOcorrencias, parseDataUTC } from "@/lib/ocorrencias";
+import { gerarOcorrencias, parseDataUTC, isoData } from "@/lib/ocorrencias";
 import { corDaModadora } from "@/lib/cores";
 
 interface EscalaItem {
@@ -17,6 +17,7 @@ interface EscalaItem {
   diasSemana: number[];
   modoDias: string;
   marcacoes: string[];
+  marcacoesReais: Record<string, string>; // data programada → data em que foi feita, se diferente
   tarefa: { titulo: string; area: { nome: string } };
   responsavel: { id: string; nome: string; cor: string | null };
 }
@@ -47,6 +48,9 @@ function statusVariant(s: string, pct: number): "green" | "yellow" | "red" | "bl
 /**
  * Para um EscalaItem, retorna os dias do mês (1–31) em que ele aparece,
  * com estado de conclusão. Usa a mesma lógica de ocorrências do resto do app.
+ *
+ * Ocorrências feitas em dia diferente do programado (marcacoesReais) são
+ * exibidas no dia em que de fato foram concluídas, não no dia programado.
  */
 function gerarEventosMes(
   item: EscalaItem,
@@ -54,17 +58,18 @@ function gerarEventosMes(
   mes: number  // 0-indexed
 ): Record<number, EventoDia> {
   const result: Record<number, EventoDia> = {};
-  const marc = new Set(item.marcacoes ?? []);
-  const flex = item.modoDias === "UM_DENTRE" && (item.diasSemana?.length ?? 0) > 0;
-
-  const fim    = parseDataUTC(item.dataFim);
-  const fimDia = fim.getUTCFullYear() === ano && fim.getUTCMonth() === mes ? fim.getUTCDate() : null;
+  const marc  = new Set(item.marcacoes ?? []);
+  const reais = item.marcacoesReais ?? {};
+  const flex  = item.modoDias === "UM_DENTRE" && (item.diasSemana?.length ?? 0) > 0;
+  const fimIso = isoData(parseDataUTC(item.dataFim));
 
   for (const oc of gerarOcorrencias(item)) {
-    const d = parseDataUTC(oc.data);
+    const feito = marc.has(oc.data);
+    const dataExibida = feito ? (reais[oc.data] ?? oc.data) : oc.data;
+    const d = parseDataUTC(dataExibida);
     if (d.getUTCFullYear() !== ano || d.getUTCMonth() !== mes) continue;
     const dia = d.getUTCDate();
-    result[dia] = { item, isFinal: dia === fimDia, feito: marc.has(oc.data), flex };
+    result[dia] = { item, isFinal: oc.data === fimIso, feito, flex };
   }
 
   return result;

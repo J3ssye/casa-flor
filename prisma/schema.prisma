@@ -53,6 +53,25 @@ enum CategoriaDespesa {
   OUTRO
 }
 
+// Máquina de lavar — troca de escala
+enum TipoTrocaLavagem {
+  PERMANENTE
+  TEMPORARIA
+}
+
+enum StatusTrocaLavagem {
+  PENDENTE
+  APROVADA
+  RECUSADA
+  CANCELADA
+}
+
+// Delta aplicado a um dia específico (troca temporária): entra ou sai
+enum AcaoExcecaoLavagem {
+  ADICIONA
+  REMOVE
+}
+
 // ─────────────────────────────────────────────
 // Usuários
 // ─────────────────────────────────────────────
@@ -80,6 +99,13 @@ model User {
   reclamacoes      Reclamacao[]
   despesasPagas    Despesa[]
   rateioConfigs    RateioConfig[]
+
+  // Máquina de lavar
+  escalaLavagem       EscalaLavagem[]
+  excecoesLavagem     ExcecaoLavagem[]
+  solicitacoesLavagem SolicitacaoTrocaLavagem[] @relation("SolicitanteLavagem")
+  contrapartesLavagem SolicitacaoTrocaLavagem[] @relation("ContraparteLavagem")
+  transicoesLavagem   TransicaoTrocaLavagem[]
 
   @@index([email])
   @@index([ativo])
@@ -167,9 +193,10 @@ model EscalaItem {
 // ─────────────────────────────────────────────
 
 model MarcacaoTarefa {
-  id           String   @id @default(cuid())
-  data         DateTime               // dia marcado como feito (meio-dia UTC)
-  criadoEm     DateTime @default(now())
+  id            String   @id @default(cuid())
+  data          DateTime               // dia esperado/programado da ocorrência (meio-dia UTC)
+  dataConclusao DateTime?              // dia em que foi de fato feita, se diferente de "data"
+  criadoEm      DateTime @default(now())
 
   escalaItem   EscalaItem @relation(fields: [escalaItemId], references: [id], onDelete: Cascade)
   escalaItemId String
@@ -354,4 +381,96 @@ model SolicitacaoTroca {
 
   @@index([solicitanteId])
   @@index([status])
+}
+
+// ─────────────────────────────────────────────
+// Máquina de Lavar
+// ─────────────────────────────────────────────
+
+// Escala base recorrente semanal.
+// Limite rígido de 2 moradoras por dia garantido no banco via (diaSemana, slot).
+model EscalaLavagem {
+  id        String   @id @default(cuid())
+  diaSemana Int      // 0=Dom … 6=Sáb
+  slot      Int      // 0 ou 1 → no máximo 2 por dia
+  criadoEm  DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  @@unique([diaSemana, slot])   // ← limite de 2/dia (constraint)
+  @@unique([diaSemana, userId]) // mesma moradora não ocupa 2 lugares no mesmo dia
+  @@index([userId])
+}
+
+// Override de um dia específico (troca temporária). Modelo de delta:
+// o roster efetivo do dia = base(diaSemana) − REMOVE ∪ ADICIONA.
+// NÃO tem cap de 2 — troca temporária pode exceder 2/dia (decisão do produto).
+model ExcecaoLavagem {
+  id       String             @id @default(cuid())
+  data     DateTime           // dia específico, meio-dia UTC (padrão do projeto)
+  acao     AcaoExcecaoLavagem
+  criadoEm DateTime           @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  // Solicitação que originou a exceção (auditoria); null = ajuste manual da admin
+  solicitacao   SolicitacaoTrocaLavagem? @relation(fields: [solicitacaoId], references: [id])
+  solicitacaoId String?
+
+  @@unique([data, userId]) // uma decisão por pessoa por dia
+  @@index([data])
+  @@index([userId])
+  @@index([solicitacaoId])
+}
+
+// Solicitação de troca. Campos por tipo são validados na API:
+//  • PERMANENTE: diaOrigem (dia a ceder) e/ou diaDesejado (dia a assumir)
+//  • TEMPORARIA: dataAlvo (dia específico)
+//  • contraparteId null = "sem contraparte" (admin resolve o encaixe)
+model SolicitacaoTrocaLavagem {
+  id     String             @id @default(cuid())
+  tipo   TipoTrocaLavagem
+  status StatusTrocaLavagem @default(PENDENTE)
+
+  diaOrigem   Int?      // 0-6: dia que a solicitante quer deixar
+  diaDesejado Int?      // 0-6: dia que a solicitante quer assumir
+  dataAlvo    DateTime? // data específica (temporária), meio-dia UTC
+  observacao  String?
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  solicitante   User   @relation("SolicitanteLavagem", fields: [solicitanteId], references: [id])
+  solicitanteId String
+
+  contraparte   User?   @relation("ContraparteLavagem", fields: [contraparteId], references: [id])
+  contraparteId String?
+
+  transicoes TransicaoTrocaLavagem[]
+  excecoes   ExcecaoLavagem[]
+
+  @@index([status])
+  @@index([solicitanteId])
+  @@index([contraparteId])
+  @@index([tipo])
+}
+
+// Histórico auditável append-only: cada transição de status é uma linha nova.
+model TransicaoTrocaLavagem {
+  id         String              @id @default(cuid())
+  deStatus   StatusTrocaLavagem? // null na criação
+  paraStatus StatusTrocaLavagem
+  motivo     String?
+  criadoEm   DateTime            @default(now())
+
+  solicitacao   SolicitacaoTrocaLavagem @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
+  solicitacaoId String
+
+  autor   User   @relation(fields: [autorId], references: [id])
+  autorId String
+
+  @@index([solicitacaoId])
+  @@index([autorId])
 }

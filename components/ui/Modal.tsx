@@ -25,7 +25,7 @@ export default function Modal({ aberto, onFechar, titulo, children }: ModalProps
         onClick={onFechar}
         aria-hidden="true"
       />
-      <div className="relative bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-xl p-6 z-10 max-h-[90dvh] overflow-y-auto">
+      <div className="relative bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-xl p-6 z-10 max-h-[90svh] overflow-y-auto overscroll-contain">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-gray-900">{titulo}</h2>
           <button

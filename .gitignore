@@ -38,3 +38,6 @@ next-env.d.ts
 
 # prisma
 prisma/*.db
+
+# scripts temporários de setup/teste
+scripts-tmp*.js

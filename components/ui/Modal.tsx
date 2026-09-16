@@ -10,10 +10,26 @@ interface ModalProps {
 }
 
 export default function Modal({ aberto, onFechar, titulo, children }: ModalProps) {
+  // No iOS, "overflow: hidden" no body não trava o scroll por toque — a página
+  // de fundo continua "elástica" e volta com um salto ao soltar o dedo. Travar
+  // via position:fixed remove o body do fluxo rolável de verdade.
   useEffect(() => {
-    if (aberto) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
-    return () => { document.body.style.overflow = ""; };
+    if (!aberto) return;
+
+    const scrollY = window.scrollY;
+    const { style } = document.body;
+    style.position = "fixed";
+    style.top = `-${scrollY}px`;
+    style.left = "0";
+    style.right = "0";
+
+    return () => {
+      style.position = "";
+      style.top = "";
+      style.left = "";
+      style.right = "";
+      window.scrollTo(0, scrollY);
+    };
   }, [aberto]);
 
   if (!aberto) return null;

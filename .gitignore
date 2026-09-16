@@ -41,3 +41,6 @@ prisma/*.db
 
 # scripts temporários de setup/teste
 scripts-tmp*.js
+
+# Claude Code config local
+.claude/

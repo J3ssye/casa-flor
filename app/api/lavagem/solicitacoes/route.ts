@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/permissions";
 import { validarNovaSolicitacao, formatDataUTC, parseDataUTC } from "@/lib/lavagem";
+import { aprovarSolicitacao, ErroTroca } from "@/lib/lavagem.server";
 
 const INCLUDE = {
   solicitante: { select: { id: true, nome: true, cor: true } },
@@ -88,6 +89,18 @@ export async function POST(req: NextRequest) {
     });
     return s;
   });
+
+  // Aprovação IMEDIATA quando as regras são atendidas:
+  //  • temporária: sempre (pode exceder 2/dia);
+  //  • permanente: se couber nos 2/dia (ou permuta válida).
+  // Se não couber (ErroTroca), permanece PENDENTE para a administradora resolver.
+  try {
+    await aprovarSolicitacao(prisma, criada.id, solicitanteId, {
+      motivo: "Aprovação automática — regras atendidas.",
+    });
+  } catch (e) {
+    if (!(e instanceof ErroTroca)) throw e;
+  }
 
   const completa = await prisma.solicitacaoTrocaLavagem.findUnique({
     where: { id: criada.id },

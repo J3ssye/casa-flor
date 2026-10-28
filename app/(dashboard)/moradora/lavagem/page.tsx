@@ -49,6 +49,7 @@ export default function LavagemMoradoraPage() {
   const [observacao, setObservacao] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
+  const [aviso, setAviso] = useState("");
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -118,8 +119,14 @@ export default function LavagemMoradoraPage() {
       body: JSON.stringify(body),
     });
     setEnviando(false);
-    if (!res.ok) { setErro((await res.json()).error ?? "Erro ao enviar."); return; }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { setErro(data.error ?? "Erro ao enviar."); return; }
     setModalTipo(null);
+    setAviso(
+      data.status === "APROVADA"
+        ? "✓ Troca aplicada na hora 🌸"
+        : "Esse dia já tem 2 moradoras 🌸 Guardei seu pedido! Que tal combinar a troca com uma coleguinha? Senão, a administradora dá um jeitinho."
+    );
     carregar();
   }
 
@@ -150,6 +157,10 @@ export default function LavagemMoradoraPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Máquina de Lavar</h1>
+
+      {aviso && (
+        <p className="text-sm font-medium text-gray-700 bg-primary-50 rounded-xl px-4 py-2">{aviso}</p>
+      )}
 
       {/* Escala da semana */}
       <div>
@@ -183,8 +194,8 @@ export default function LavagemMoradoraPage() {
           const pend = pendentePorTipo(tipo);
           const titulo = tipo === "PERMANENTE" ? "Troca permanente" : "Troca temporária";
           const desc = tipo === "PERMANENTE"
-            ? "Muda a escala fixa daqui em diante."
-            : "Vale só para uma data específica.";
+            ? "Muda a escala fixa daqui em diante. Aplica na hora se houver vaga no dia."
+            : "Vale só para uma data específica. Aplica na hora.";
           return (
             <Card key={tipo} className="flex flex-col gap-2">
               <div>
@@ -193,10 +204,11 @@ export default function LavagemMoradoraPage() {
               </div>
               {pend ? (
                 <div className="bg-yellow-50 rounded-xl px-3 py-2 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="yellow">Pendente</Badge>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="yellow">Aguardando 🌸</Badge>
                     <span className="text-xs text-gray-600">{resumoPedido(pend)}</span>
                   </div>
+                  <p className="text-xs text-gray-500">Esse dia já tá cheio — pede pra uma coleguinha trocar com você, ou espera a administradora dar um jeitinho. 💛</p>
                   <Button variant="danger" size="sm" onClick={() => cancelar(pend.id)}>
                     Cancelar solicitação
                   </Button>

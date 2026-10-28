@@ -154,12 +154,15 @@ export default function LavagemAdminPage() {
 
       {/* Fila de solicitações */}
       <div>
-        <p className="text-sm font-semibold text-gray-600 mb-2 ml-1">
-          Solicitações pendentes {pendentes.length > 0 && <Badge variant="yellow">{pendentes.length}</Badge>}
+        <p className="text-sm font-semibold text-gray-600 mb-1 ml-1">
+          Solicitações aguardando ajuste {pendentes.length > 0 && <Badge variant="yellow">{pendentes.length}</Badge>}
+        </p>
+        <p className="text-xs text-gray-400 mb-2 ml-1">
+          Trocas válidas são aprovadas na hora. Chegam aqui só as permanentes em que o dia desejado já tinha 2 moradoras — libere um lugar e aprove, ou recuse.
         </p>
         {carregando ? <p className="text-gray-500">Carregando…</p> :
           pendentes.length === 0 ? (
-            <Card><p className="text-gray-500 text-center py-3 text-sm">Nenhuma solicitação pendente.</p></Card>
+            <Card><p className="text-gray-500 text-center py-3 text-sm">Nenhuma solicitação aguardando ajuste.</p></Card>
           ) : (
             <div className="space-y-2">
               {pendentes.map(s => (
